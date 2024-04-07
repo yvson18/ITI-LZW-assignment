@@ -7,10 +7,10 @@ def write_file(indices, filename):
     packed_bytes = bytearray([min_nb_bits])
 
     for idx in tqdm(indices, desc="Saving", bar_format=bar_format):
-        bits = to_fixed_bits(idx, min_nb_bits) # Representa todos os índices com o número mínimo de bits possível
-        # print(bits)
-        for bit in bits:
-            current_byte |= int(bit) # Constroi o byte com cada bit restante dos elementos anteriores e o atual
+        nb_bits = idx.bit_length()
+        for i in range(min_nb_bits-1, -1, -1): # Itera sobre cada bit do índice da esquerda para direita, começando do mínimo número de bits
+            if i < nb_bits: # Caso o número de bits do índice seja menor do que o mínimo necessário, o bit "i" é tratado como 0, que não faz diferença no OR
+                current_byte |= ((idx >> i) & 1) # Constroi o byte com cada bit restante dos elementos anteriores e o atual
             bits_counter += 1
             # print(bin(current_byte))
             if bits_counter == 8: # Se completou o byte
