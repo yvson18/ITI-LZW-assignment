@@ -5,17 +5,29 @@ import numpy as np
 from tqdm import tqdm
 from collections import Counter
 import matplotlib.pyplot as plt
+from tkinter import Tk, filedialog
 
 bar_format = "{desc}: {percentage:3.0f}%|{bar:50}| {n_fmt}/{total_fmt} | {elapsed}<{remaining} | elapsed: {elapsed_s:.3f}s"
 
 def get_args():
     parser = argparse.ArgumentParser(description="LZEY")
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("-c", "--compress", action="store_true", help="compress the file")
-    group.add_argument("-d", "--decompress", action="store_true", help="decompress the file")
-    parser.add_argument("filename", help="name of the file to compress or decompress")
+    group.add_argument("-c", "--compress", action="store_true", help="compression mode")
+    group.add_argument("-d", "--decompress", action="store_true", help="decompression mode")
+    parser.add_argument("-rd", action="store_true", help="use RD strategy for compression mode")
     args = parser.parse_args()
     return vars(args)
+
+def provide_files(args):
+    mode = "compress" if args['compress'] else "decompress"
+    filetypes = [("All files", "*")] if args['compress'] else [("LZEY files", "*.lzey")]
+    print(f"Select files to {mode}")
+    files = filedialog.askopenfilenames(
+        initialdir=os.getcwd(),
+        title=f"Select files to {mode}",
+        filetypes=filetypes
+    )
+    return list(files)
 
 def get_filename_and_ext(filepath):
     filename_ext = os.path.basename(filepath)
