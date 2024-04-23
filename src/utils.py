@@ -58,6 +58,9 @@ def static_entropy(data: bytes) -> float:
     
     return h
 
+def calculate_medium_length(nb_indices_at_this_point: int, largest_idx_at_this_point: int, nb_symb_saw_at_this_point: int):
+    return (nb_indices_at_this_point*(largest_idx_at_this_point.bit_length())) / nb_symb_saw_at_this_point
+
 def create_compression_series(indices: list[int], symbs_saw: list[int]):
     bit_dep = 8
     max_bit_dep = bit_dep
@@ -76,17 +79,25 @@ def create_compression_series(indices: list[int], symbs_saw: list[int]):
 
     return comp
 
-def plot_compression_series(comp: list[int], plot_title: str, output_path: str) -> None:
-    qnt_symbs_saw = np.arange(1, len(comp) + 1)
-
+def plot_medium_length_curve(med_length_series, files: list[str]) -> None:
+    x_axis_vals = np.arange(1, len(med_length_series) + 1)
     plt.figure(figsize=(10, 6))
-    plt.plot(qnt_symbs_saw, comp, marker='o', linestyle='-')
-
-    plt.xscale('log')
-
-    plt.title(plot_title)
-    plt.xlabel('symb (bytes)')
+    plt.plot(x_axis_vals, med_length_series, marker='o', linestyle='-')
+    plt.title("Curva de comprimento médio por símbolos vistos")
+    plt.xlabel('Símbolos vistos (bytes)')
     plt.ylabel('Comprimento Médio (bits)')
     plt.grid(True, which="both", ls="--")
 
-    plt.savefig(output_path)
+    out_filename, _ = get_filename_and_ext(files[0])    
+    if len(files) > 1:
+        out_filename += "_merged"
+
+    out = out_filename + "_med_length_curve.png"
+    outlog = out_filename + "_med_length_curve_log.png"
+    print(f"Medium length: {med_length_series[-1]}")
+    print(f"Saving medium length curve to: {out}")
+    plt.savefig(out)
+
+    plt.xscale('log')
+    print(f"Saving medium length curve in log scale to: {outlog}")
+    plt.savefig(outlog)

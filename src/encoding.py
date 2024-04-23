@@ -1,26 +1,32 @@
 from utils import *
 
 class EncodeFeedbackInfo:
-    def __init__(self, curr_dict_len, dictionary, symbs_saw, qnt_symb):
+    def __init__(self, curr_dict_len, dictionary, med_length_series, nb_symbs, nb_indices, largest_idx):
         self.curr_dict_len = curr_dict_len
         self.dictionary = dictionary
-        self.symbs_saw = symbs_saw
-        self.qnt_symb = qnt_symb
+        self.med_length_series = med_length_series
+        self.nb_symbs = nb_symbs
+        self.nb_indices = nb_indices
+        self.largest_idx = largest_idx
 
     def __iter__(self):
         yield self.curr_dict_len
         yield self.dictionary
-        yield self.symbs_saw
-        yield self.qnt_symb
+        yield self.med_length_series
+        yield self.nb_symbs
+        yield self.nb_indices
+        yield self.largest_idx
 
 def encode(files: list[str], max_dict_len: int, allow_rd: bool):
     indices_per_file = []
 
     curr_dict_len = 256
     dictionary = {bytes([i]): i for i in range(curr_dict_len)} # Inicializa o dicionário com os 255 valores possíveis para 8 bits
-    symbs_saw = [] # Informações sobre a compressão
-    qnt_symb = 0
-    enc_fb_info = EncodeFeedbackInfo(curr_dict_len, dictionary, symbs_saw, qnt_symb)
+    med_length_series = [] # Informações sobre o comprimento médio da compressão
+    nb_symbs = 0
+    nb_indices = 0
+    largest_idx = 0b0
+    enc_fb_info = EncodeFeedbackInfo(curr_dict_len, dictionary, med_length_series, nb_symbs, nb_indices, largest_idx)
 
     for file_idx, file in enumerate(files):
         with open(file, 'rb') as f:
@@ -29,23 +35,28 @@ def encode(files: list[str], max_dict_len: int, allow_rd: bool):
         indices, enc_fb_info = encode_bytes(data, max_dict_len, file_idx, allow_rd, enc_fb_info)
         indices_per_file.append(indices)
 
+    plot_medium_length_curve(enc_fb_info.med_length_series, files)
+
     return indices_per_file, enc_fb_info
 
 def encode_bytes(data: bytes, max_dict_len: int, file_idx: int, allow_rd: bool, enc_fb_info: EncodeFeedbackInfo) -> list[int]:
-    curr_dict_len, dictionary, symbs_saw, qnt_symb = enc_fb_info
+    curr_dict_len, dictionary, med_length_series, nb_symbs, nb_indices, largest_idx = enc_fb_info
     indices = [] # Saída vazia
     previous_phrase = bytes() # Necessário pois indica EOF do arquivo anterior
 
     for symb_int in tqdm(data, desc=f"Encoding file #{file_idx+1}", bar_format=bar_format):
-        qnt_symb += 1
+        nb_symbs += 1
         current_symb = bytes([symb_int])
         current_phrase = previous_phrase + current_symb
 
         if current_phrase in dictionary:
             previous_phrase = current_phrase
         else:
-            indices.append(dictionary[previous_phrase]) # Adiciona o índice da última frase encontrada à saída
-            symbs_saw.append(qnt_symb) 
+            idx = dictionary[previous_phrase]
+            if idx > largest_idx:
+                largest_idx = idx
+            indices.append(idx) # Adiciona o índice da última frase encontrada à saída
+            nb_indices += 1
 
             if curr_dict_len < max_dict_len:
                 dictionary[current_phrase] = curr_dict_len # Adiciona a nova frase no dicionário
@@ -58,12 +69,17 @@ def encode_bytes(data: bytes, max_dict_len: int, file_idx: int, allow_rd: bool, 
                     curr_dict_len += 1
 
             previous_phrase = current_symb # Continua do símbolo atual que quebrou a sequência de frases encontradas
+        med_length_series.append(calculate_medium_length(nb_indices, largest_idx, nb_symbs))
 
     if previous_phrase:
-        indices.append(dictionary[previous_phrase])
-        symbs_saw.append(qnt_symb)
+        idx = dictionary[previous_phrase]
+        if idx > largest_idx:
+            largest_idx = idx
+        indices.append(idx)
+        nb_indices += 1
+        med_length_series.append(calculate_medium_length(nb_indices, largest_idx, nb_symbs))
 
-    return indices, EncodeFeedbackInfo(curr_dict_len, dictionary, symbs_saw, qnt_symb)
+    return indices, EncodeFeedbackInfo(curr_dict_len, dictionary, med_length_series, nb_symbs, nb_indices, largest_idx)
 
 class DecodeFeedbackInfo:
     def __init__(self, curr_dict_len, dictionary):
