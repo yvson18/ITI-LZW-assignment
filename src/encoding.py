@@ -35,7 +35,8 @@ def encode(files: list[str], max_dict_len: int, allow_rd: bool):
         indices, enc_fb_info = encode_bytes(data, max_dict_len, file_idx, allow_rd, enc_fb_info)
         indices_per_file.append(indices)
 
-    plot_medium_length_curve(enc_fb_info.med_length_series, files)
+    print(f"Medium length: {enc_fb_info.med_length_series[-1]}")
+    # plot_medium_length_curve(enc_fb_info.med_length_series, files)
 
     return indices_per_file, enc_fb_info
 

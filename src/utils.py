@@ -94,7 +94,6 @@ def plot_medium_length_curve(med_length_series, files: list[str]) -> None:
 
     out = out_filename + "_med_length_curve.png"
     outlog = out_filename + "_med_length_curve_log.png"
-    print(f"Medium length: {med_length_series[-1]}")
     print(f"Saving medium length curve to: {out}")
     plt.savefig(out)
 
